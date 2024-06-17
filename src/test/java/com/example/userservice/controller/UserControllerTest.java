@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,8 +33,8 @@ class UserControllerTest {
 
     @Test
     void testUploadFile() {
-        MultipartFile file = new MockMultipartFile("file", "test.csv", "text/csv", "name,email\nJohn Doe,johndoe@example.com".getBytes());
-        String headerFormat = "name,email";
+        MultipartFile file = new MockMultipartFile("file", "test.csv", "text/csv", "firstName,lastName,email,age,userType\nJohn,Doe,johndoe@example.com,30,Admin".getBytes());
+        String headerFormat = "Default";
 
         doNothing().when(userService).saveUsers(file, headerFormat);
 
@@ -47,7 +46,7 @@ class UserControllerTest {
 
     @Test
     void testGetAllUsers() {
-        List<UserDTO> expectedUsers = Arrays.asList(new UserDTO("First Last", "firstLast@example.com"));
+        List<UserDTO> expectedUsers = Arrays.asList(new UserDTO("John", "Doe", "johndoe@example.com", 30, "Admin"));
         when(userService.getAllUsers()).thenReturn(expectedUsers);
 
         List<UserDTO> response = userController.getAllUsers();

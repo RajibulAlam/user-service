@@ -5,6 +5,7 @@ import com.example.userservice.entity.UserEntity;
 import com.example.userservice.process.FileReaderFactory;
 import com.example.userservice.process.FileReaderStrategy;
 import com.example.userservice.repository.UserRepository;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -17,12 +18,14 @@ import org.mockito.MockedStatic;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
 
 class UserServiceTest {
 
@@ -35,6 +38,9 @@ class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
+    @Mock
+    private Validator validator;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -42,15 +48,18 @@ class UserServiceTest {
 
     @Test
     void testSaveUsers() throws IOException {
-        MultipartFile file = new MockMultipartFile("file", "test.csv", "text/csv", "name,email\nFirst Last,firstlast@example.com".getBytes());
+        MultipartFile file = new MockMultipartFile("file", "test.csv", "text/csv", "firstName,lastName,email,age,userType\nFirst,Last,firstlast@example.com,20,Admin".getBytes());
         String headerFormat = "Default";
 
-        List<UserDTO> userDTOs = Arrays.asList(new UserDTO("First Last", "firstlast@example.com"));
-        
+        List<UserDTO> userDTOs = Arrays.asList(new UserDTO("First", "Last", "firstlast@example.com", 20, "Admin"));
+
+        // Mock the static method
         try (MockedStatic<FileReaderFactory> mockedFactory = mockStatic(FileReaderFactory.class)) {
             mockedFactory.when(() -> FileReaderFactory.getFileReader(headerFormat)).thenReturn(fileReaderStrategy);
 
+            // Ensure readFile method of fileReaderStrategy is mocked
             when(fileReaderStrategy.readFile(file)).thenReturn(userDTOs);
+            when(validator.validate(any(UserDTO.class))).thenReturn(Set.of());
 
             userService.saveUsers(file, headerFormat);
 
@@ -62,11 +71,11 @@ class UserServiceTest {
 
     @Test
     void testGetAllUsers() {
-        List<UserEntity> userEntities = Arrays.asList(new UserEntity("First Last", "firstlast@example.com"));
+        List<UserEntity> userEntities = Arrays.asList(new UserEntity("First", "Last", "firstlast@example.com", 20, "Admin"));
         when(userRepository.findAll()).thenReturn(userEntities);
 
         List<UserDTO> expectedUsers = userEntities.stream()
-                .map(user -> new UserDTO(user.getName(), user.getEmail()))
+                .map(user -> new UserDTO(user.getFirstName(), user.getLastName(), user.getEmail(), user.getAge(), user.getUserType()))
                 .collect(Collectors.toList());
 
         List<UserDTO> users = userService.getAllUsers();
@@ -86,7 +95,7 @@ class UserServiceTest {
 
     @Test
     void testValidateFile_InvalidFileType() {
-        MultipartFile file = new MockMultipartFile("file", "test.txt", "text/plain", "name,email\nFirst Last,firstlast@example.com".getBytes());
+        MultipartFile file = new MockMultipartFile("file", "test.txt", "text/plain", "firstName,lastName,email,age,userType\nFirst,Last,firstlast@example.com,20,Admin".getBytes());
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> userService.saveUsers(file, "Default"));
 

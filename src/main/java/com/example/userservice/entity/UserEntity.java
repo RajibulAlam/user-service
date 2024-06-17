@@ -6,7 +6,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,25 +21,37 @@ public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotBlank(message = "Name is mandatory")
-    private String name;
-    @Email(message = "Email should be valid")
-    @NotBlank(message = "Email is mandatory")
+
+    @NotBlank
+    @Size(min = 2, max = 50)
+    private String firstName;
+
+    @NotBlank
+    @Size(min = 2, max = 50)
+    private String lastName;
+
+    @NotBlank
+    @Email
     private String email;
 
-    public UserEntity(String name, String email) {
-        this.name = name;
+    @Min(18)
+    private int age;
+
+    @NotBlank
+    private String userType;
+
+    // Constructors, getters, and setters
+
+    public UserEntity() {}
+
+    public UserEntity(String firstName, String lastName, String email, int age, String userType) {
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
+        this.age = age;
+        this.userType = userType;
     }
 
-    public UserEntity() {
-
-    }
-
-    /*
-     other attributes
-
-     */
 
 
 }

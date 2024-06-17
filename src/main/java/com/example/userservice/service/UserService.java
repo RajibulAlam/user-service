@@ -5,8 +5,11 @@ import com.example.userservice.entity.UserEntity;
 import com.example.userservice.process.FileReaderFactory;
 import com.example.userservice.process.FileReaderStrategy;
 import com.example.userservice.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.validation.Validator;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,21 +18,26 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final Validator validator;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, Validator validator) {
         this.userRepository = userRepository;
+        this.validator = validator;
     }
 
-    public void saveUsers(MultipartFile file, String header) {
+    public void saveUsers(MultipartFile file, String headerFormat) {
         validateFile(file);
-        FileReaderStrategy fileReader = FileReaderFactory.getFileReader(header);
+        FileReaderStrategy fileReader = FileReaderFactory.getFileReader(headerFormat);
         try {
-            List<UserDTO> users = fileReader.readFile(file);
+            List<@Valid UserDTO> users = fileReader.readFile(file);
             for (UserDTO user : users) {
-                userRepository.save(new UserEntity(user.name(), user.email()));
+                var violations = validator.validate(user);
+                if (!violations.isEmpty()) {
+                    throw new RuntimeException("Validation errors: " + violations);
+                }
+                userRepository.save(new UserEntity(user.firstName(), user.lastName(), user.email(), user.age(), user.userType()));
             }
         } catch (IOException e) {
-            // TODO: create a custom exception and also add a controller advisor to handle it
             throw new RuntimeException("Failed to process file", e);
         }
     }
@@ -37,7 +45,7 @@ public class UserService {
     public List<UserDTO> getAllUsers() {
         List<UserEntity> users = userRepository.findAll();
         return users.stream()
-                .map(user -> new UserDTO(user.getName(), user.getEmail()))
+                .map(user -> new UserDTO(user.getFirstName(), user.getLastName(), user.getEmail(), user.getAge(), user.getUserType()))
                 .collect(Collectors.toList());
     }
 
